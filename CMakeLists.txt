@@ -10,12 +10,14 @@ pico_sdk_init()
 
 link_directories(libmicroros)
 add_executable(pico_micro_ros_example
-    pico_micro_ros_example.c
-    pico_uart_transport.c
+    pico_micro_ros_example.cpp
+    pico_uart_transport.cpp
+    Adafruit_NeoPixel/Adafruit_NeoPixel.cpp
 )
 target_link_libraries(pico_micro_ros_example
     pico_stdlib
     microros
+    hardware_pio
 )
 
 target_include_directories(pico_micro_ros_example PUBLIC
@@ -31,6 +33,7 @@ pico_enable_stdio_uart(pico_micro_ros_example 0)
 add_compile_definitions(PICO_UART_ENABLE_CRLF_SUPPORT=0)
 add_compile_definitions(PICO_STDIO_ENABLE_CRLF_SUPPORT=0)
 add_compile_definitions(PICO_STDIO_DEFAULT_CRLF=0)
+add_compile_definitions(ARDUINO_ARCH_RP2040=1)
 
 # Generate UF2
 pico_add_extra_outputs(pico_micro_ros_example)

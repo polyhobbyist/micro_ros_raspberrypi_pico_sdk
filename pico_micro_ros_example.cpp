@@ -9,8 +9,12 @@
 
 #include "pico/stdlib.h"
 #include "pico_uart_transports.h"
+#include "Adafruit_NeoPixel/Adafruit_NeoPixel.h"
 
-const uint LED_PIN = 25;
+const uint LED_PIN = 12;
+const uint LED_PIN_POWER = 11;
+const uint NUMPIXELS=1;
+
 
 rcl_publisher_t publisher;
 std_msgs__msg__Int32 msg;
@@ -23,6 +27,20 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 
 int main()
 {
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    gpio_init(LED_PIN_POWER);
+    gpio_set_dir(LED_PIN_POWER, GPIO_OUT);
+
+    gpio_put(LED_PIN_POWER, 1);
+
+    Adafruit_NeoPixel pixels(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+    pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+
+    pixels.setPixelColor(0, pixels.Color(0, 150, 0));
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
     rmw_uros_set_custom_transport(
 		true,
 		NULL,
@@ -31,9 +49,6 @@ int main()
 		pico_serial_transport_write,
 		pico_serial_transport_read
 	);
-
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
 
     rcl_timer_t timer;
     rcl_node_t node;
@@ -45,15 +60,29 @@ int main()
 
     // Wait for agent successful ping for 2 minutes.
     const int timeout_ms = 1000; 
-    const uint8_t attempts = 120;
+    const uint8_t attempts = 255;
 
     rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
 
     if (ret != RCL_RET_OK)
     {
+        while (true)
+        {
+            pixels.setPixelColor(0, pixels.Color(255, 0, 0));
+            pixels.show();   // Send the updated pixel colors to the hardware.
+
+            sleep_ms(2000);
+
+            pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+            pixels.show();   // Send the updated pixel colors to the hardware.
+        }
         // Unreachable agent, exiting program.
         return ret;
     }
+
+    pixels.setPixelColor(0, pixels.Color(80, 0, 80));
+    pixels.show();   // Send the updated pixel colors to the hardware.
+
 
     rclc_support_init(&support, 0, NULL, &allocator);
 
@@ -73,7 +102,8 @@ int main()
     rclc_executor_init(&executor, &support.context, 1, &allocator);
     rclc_executor_add_timer(&executor, &timer);
 
-    gpio_put(LED_PIN, 1);
+    pixels.setPixelColor(0, pixels.Color(0, 0, 80));
+    pixels.show();   // Send the updated pixel colors to the hardware.
 
     msg.data = 0;
     while (true)
